@@ -1,0 +1,24 @@
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-go@v1
+      with:
+        go-version: '1.x'
+    - name: Run go build
+      run: CGO_ENABLED=0 go build -o .github/docker/ ./cmd/hfs
+    - name: Build docker container and push
+      if: github.ref == 'refs/heads/master'
+      run: |
+        DOCKERD_CONFIG=$(jq '.+{experimental:true}' /etc/docker/daemon.json)
+        sudo tee /etc/docker/daemon.json <<< "${DOCKERD_CONFIG}"
+        sudo systemctl restart docker
+        docker build --squash --tag '${{ secrets.IMAGE_PATH }}' .github/docker/
+        docker login --username '${{ secrets.REGISTRY_USERNAME }}' --password '${{ secrets.REGISTRY_PASSWORD }}' "${IMAGE_PATH%%/*}"
+        docker push "${IMAGE_PATH}"
+      env:
+        IMAGE_PATH: ${{ secrets.IMAGE_PATH }}
