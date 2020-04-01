@@ -3,6 +3,7 @@ on:
 
 jobs:
   build:
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -10,15 +11,14 @@ jobs:
       with:
         go-version: '1.x'
     - name: Run go build
-      run: CGO_ENABLED=0 go build -o .github/docker/ ./cmd/hfs
+      run: CGO_ENABLED=0 go build -o docker/ ./cmd/hfs
     - name: Build docker container and push
       if: github.ref == 'refs/heads/master'
-      run: |
-        DOCKERD_CONFIG=$(jq '.+{experimental:true}' /etc/docker/daemon.json)
-        sudo tee /etc/docker/daemon.json <<< "${DOCKERD_CONFIG}"
-        sudo systemctl restart docker
-        docker build --squash --tag '${{ secrets.IMAGE_PATH }}' .github/docker/
-        docker login --username '${{ secrets.REGISTRY_USERNAME }}' --password '${{ secrets.REGISTRY_PASSWORD }}' "${IMAGE_PATH%%/*}"
-        docker push "${IMAGE_PATH}"
       env:
-        IMAGE_PATH: ${{ secrets.IMAGE_PATH }}
+        REGISTRY_USERNAME: youfu
+        REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        IMAGE_PATH: registry-1.docker.io/youfu/hfs:latest
+      run: |
+        docker build --tag '${{ secrets.IMAGE_PATH }}' docker/
+        docker login --username "${REGISTRY_USERNAME}" --password "${REGISTRY_PASSWORD}" "${IMAGE_PATH%%/*}"
+        docker push "${IMAGE_PATH}"
