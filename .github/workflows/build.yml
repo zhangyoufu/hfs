@@ -19,6 +19,6 @@ jobs:
         REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
         IMAGE_PATH: registry-1.docker.io/youfu/hfs:latest
       run: |
-        docker build --tag '${{ secrets.IMAGE_PATH }}' docker/
+        docker build --tag "${IMAGE_PATH}" docker/
         docker login --username "${REGISTRY_USERNAME}" --password "${REGISTRY_PASSWORD}" "${IMAGE_PATH%%/*}"
         docker push "${IMAGE_PATH}"
