@@ -54,6 +54,7 @@ func main() {
 	case "tcp":
 	case "unix":
 		_ = os.Remove(address)
+		_ = umask(0o007)
 	default:
 		log.Fatal("unsupported network")
 	}
