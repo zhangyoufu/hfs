@@ -72,14 +72,18 @@ func main() {
 		ln = proxyListener
 	}
 
+	server := http.Server{
+		Handler: &hfs.FileServer{
+			FileSystem:       http.Dir(root),
+			Sorter:           sorter,
+			AccessLog:        logger,
+			ErrorLog:         log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lmicroseconds),
+			DirectoryListing: dirList,
+			ServeDotFile:     dotFile,
+			ServeIndexPage:   indexPage,
+		},
+		DisableGeneralOptionsHandler: true,
+	}
 	log.Printf("Serving %s on [%s] %s", root, network, address)
-	log.Fatal(http.Serve(ln, &hfs.FileServer{
-		FileSystem:       http.Dir(root),
-		Sorter:           sorter,
-		AccessLog:        logger,
-		ErrorLog:         log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lmicroseconds),
-		DirectoryListing: dirList,
-		ServeDotFile:     dotFile,
-		ServeIndexPage:   indexPage,
-	}))
+	log.Fatal(server.Serve(ln))
 }
