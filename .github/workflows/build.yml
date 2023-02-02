@@ -6,18 +6,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: actions/setup-go@v3
-      with:
-        go-version: '^1.20'
-    - name: Run go build
-      run: CGO_ENABLED=0 go build -o docker/ ./cmd/hfs
-    - name: Build docker container and push
-      if: github.ref == 'refs/heads/master'
+    - name: Strip down build context
+      run: rm -rf .git/ .github/
+    - name: Build and push docker image
       env:
-        REGISTRY_USERNAME: youfu
+        PLATFORM: linux/386,linux/amd64,linux/arm/v5,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/mips,linux/mips64,linux/ppc64,linux/ppc64le,linux/s390x,linux/riscv64,linux/loong64
+        IMAGE_PATH: ${{ vars.IMAGE_PATH }}
+        REGISTRY_USERNAME: ${{ vars.REGISTRY_USERNAME }}
         REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-        IMAGE_PATH: registry-1.docker.io/youfu/hfs:latest
-      run: |
-        docker build --tag "${IMAGE_PATH}" docker/
-        docker login --username "${REGISTRY_USERNAME}" --password "${REGISTRY_PASSWORD}" "${IMAGE_PATH%%/*}"
-        docker push "${IMAGE_PATH}"
+      run: |-
+        docker buildx create --driver docker-container --use
+        if [ "${GITHUB_REF}" = "refs/heads/master" ]; then
+          docker login --username "${REGISTRY_USERNAME}" --password "${REGISTRY_PASSWORD}" "${IMAGE_PATH%%/*}"
+          PUSH_ARGS=(--push)
+        fi
+        docker buildx build --platform "${PLATFORM}" --tag "$IMAGE_PATH:latest" "${PUSH_ARGS[@]}" .
