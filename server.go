@@ -37,14 +37,10 @@ type FileServer struct {
 }
 
 func (s *FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	urlPath := r.URL.RawPath
-	if urlPath == "" {
-		urlPath = r.URL.Path
-	}
-
-	logf(s.AccessLog, "%s %s", stripPort(r.RemoteAddr), urlPath)
+	logf(s.AccessLog, "%s %s", stripPort(r.RemoteAddr), r.URL.EscapedPath())
 
 	// check path
+	urlPath := r.URL.Path
 	valid, endWithSlash := true, false
 	switch {
 	case len(urlPath) < 1:
@@ -72,7 +68,7 @@ func (s *FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// open
-	file, err := s.FileSystem.Open(urlPath)
+	file, err := s.FileSystem.Open(urlPath) // path will be checked by internal/safefilepath
 	if err != nil {
 		switch {
 		case os.IsNotExist(err):
@@ -80,6 +76,11 @@ func (s *FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case os.IsPermission(err):
 			logf(s.ErrorLog, "failed to open %s: %v", urlPath, err)
 			forbidden(w)
+		case err.Error() == "http: invalid or unsafe file path":
+			// all platform: NUL
+			// Windows-only: backslash(\), colon(:)
+			logf(s.ErrorLog, "bad path")
+			badRequest(w)
 		default:
 			logf(s.ErrorLog, "failed to open %s: %v", urlPath, err)
 			internalError(w)
