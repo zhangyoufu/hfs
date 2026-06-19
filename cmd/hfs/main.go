@@ -28,7 +28,7 @@ func main() {
 	flag.StringVar(&network, "network", "tcp", "tcp or unix")
 	flag.StringVar(&address, "addr", "localhost:8000", "address:port for tcp, or filesystem path for unix")
 	flag.StringVar(&root, "root", ".", "`path` of document root")
-	flag.BoolVar(&enableProxy, "proxy", false, "enable PROXY protocol support")
+	flag.BoolVar(&enableProxy, "proxy", false, "enable PROXY protocol support (default false)")
 	flag.BoolVar(&accessLog, "log", true, "enable access log")
 	flag.BoolVar(&dirList, "list", true, "enable directory listing")
 	flag.BoolVar(&dirFirst, "dirfirst", true, "list directories before files")
