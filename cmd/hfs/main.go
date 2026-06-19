@@ -23,6 +23,8 @@ func main() {
 		ignoreCase  bool
 		dotFile     bool
 		indexPage   bool
+		protoH1     bool
+		protoH2C    bool
 	)
 
 	flag.StringVar(&network, "network", "tcp", "tcp or unix")
@@ -35,6 +37,8 @@ func main() {
 	flag.BoolVar(&ignoreCase, "igncase", true, "case insensitive sorting")
 	flag.BoolVar(&dotFile, "dotfile", false, "enable listing and serving dot files (default false)")
 	flag.BoolVar(&indexPage, "index", true, "enable serving index.html")
+	flag.BoolVar(&protoH1, "h1", true, "enable HTTP/1 protocol")
+	flag.BoolVar(&protoH2C, "h2c", false, "enable unencrypted HTTP/2 protocol (default false)")
 	flag.Parse()
 
 	sorter := hfs.Sorter(nil)
@@ -72,6 +76,13 @@ func main() {
 		ln = proxyListener
 	}
 
+	protocols := http.Protocols{}
+	protocols.SetHTTP1(protoH1)
+	protocols.SetUnencryptedHTTP2(protoH2C)
+	if protocols.String() == "{}" {
+		log.Fatal("no protocols available")
+	}
+
 	server := http.Server{
 		Handler: &hfs.FileServer{
 			FileSystem:       http.Dir(root),
@@ -83,7 +94,9 @@ func main() {
 			ServeIndexPage:   indexPage,
 		},
 		DisableGeneralOptionsHandler: true,
+		Protocols: &protocols,
 	}
-	log.Printf("Serving %s on [%s] %s", root, network, address)
+
+	log.Printf("Serving %s on [%s] %s %s", root, network, address, protocols)
 	log.Fatal(server.Serve(ln))
 }
