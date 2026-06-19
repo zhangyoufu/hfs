@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/c0va23/go-proxyprotocol"
+	proxyproto "github.com/pires/go-proxyproto"
 	"github.com/zhangyoufu/hfs"
 )
 
@@ -63,17 +63,19 @@ func main() {
 		log.Fatal("unsupported network")
 	}
 
-	rawListener, err := net.Listen(network, address)
+	ln, err := net.Listen(network, address)
 	if err != nil {
 		log.Fatal("unable to listen: ", err)
 	}
-	ln := rawListener.(net.Listener)
 
 	if enableProxy {
-		// DefaultFallbackHeaderParserBuilder contains StubHeaderParserBuilder,
-		// which accepts non-PROXY protocol traffic
-		proxyListener := proxyprotocol.NewDefaultListener(ln)
-		ln = proxyListener
+		ln = &proxyproto.Listener{
+			Listener:   ln,
+			ConnPolicy: func (proxyproto.ConnPolicyOptions) (proxyproto.Policy, error) {
+				return proxyproto.REQUIRE, nil
+			},
+			// ReadHeaderTimeout defaults to 10s
+		}
 	}
 
 	protocols := http.Protocols{}
