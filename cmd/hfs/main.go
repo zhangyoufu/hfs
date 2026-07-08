@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime"
 
 	proxyproto "github.com/pires/go-proxyproto"
 	"github.com/zhangyoufu/hfs"
@@ -54,18 +55,21 @@ func main() {
 		logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds)
 	}
 
-	switch network {
-	case "tcp":
-	case "unix":
+	isAbstractSocket := runtime.GOOS == "linux" && len(address) > 0 && address[0] == '@'
+	hasSocketFile := network == "unix" && !isAbstractSocket
+	oldmask := -1
+	if hasSocketFile {
 		_ = os.Remove(address)
-		_ = umask(0o007)
-	default:
-		log.Fatal("unsupported network")
+		if umaskAvailable {
+			oldmask = umask(0o007)
+		}
 	}
-
 	ln, err := net.Listen(network, address)
 	if err != nil {
 		log.Fatal("unable to listen: ", err)
+	}
+	if hasSocketFile && umaskAvailable {
+		_ = umask(oldmask)
 	}
 
 	if enableProxy {

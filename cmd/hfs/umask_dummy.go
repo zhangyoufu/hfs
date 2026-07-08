@@ -1,6 +1,9 @@
+// +build plan9 || windows
+
 package main
 
-// dummy
+const umaskAvailable = false
+
 func umask(mask int) (oldmask int) {
 	return 0
 }
